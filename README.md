@@ -154,7 +154,129 @@ fpga/ecp5/  constraints and FPGA build flow
 2. Add branch prediction and compare the CPI for misdirection
 3. Add direct mapped or hashed mapped cache alongside slower main memory and measure AMAT
 4. Add exceptions
-5. Refactor code into indepedent modules
+5. Refactor code into independent modules
+
+## Requirements and Usage
+Run the following commands from the repository root
+
+### Important Required Tools
+| Tool | Purpose | Required for |
+| --- | --- | --- |
+| GNU Make | Runs the project build recipes | All workflows |
+| Verilator | SystemVerilog linting and simulation | Core and SoC verification |
+| A waveform viewer such as Surfer or gtkwave | Opens generated VCD traces | Optional waveform inspection |
+| OSS CAD Suite | Contains libraries for running FPGA | FPGA Build | 
+
+On macOS, use Homebrew for installing Verilator
+
+```sh
+brew install verilator
+```
+The FPGA tools contains the libraries for running the FPGA
+[OSS CAD Suite](https://github.com/YosysHQ/oss-cad-suite-build). After extracting, activate the environment.
+
+```sh
+source /path/to/oss-cad-suite/environment
+```
+
+If the launch scripts do not locate their corresponding executables on macOS, place both directories on `PATH`, with `libexec` first:
+
+```sh
+export PATH="/path/to/oss-cad-suite/libexec:/path/to/oss-cad-suite/bin:$PATH"
+rehash
+```
+Confirm libraries were installed: 
+
+```sh
+verilator --version
+yosys -V
+yosys -p 'help read_slang'
+nextpnr-ecp5 --version
+ecppack --help
+openFPGALoader --version
+```
+### Clone the repository
+
+```sh
+git clone https://github.com/YOUR_USERNAME/rv32-pipeline.git
+cd rv32-pipeline
+```
+Replace with your username.
+
+### Lint and test the processor
+
+```sh
+make clean
+make lint
+make test
+```
+
+A successful run should end with the testbench's PASS "message". This test tests essential functionality of the processor.
+
+### Generate and view a core waveform
+
+```sh
+make waves
+surfer build/core/rv32_core.vcd
+```
+### Test the complete SoC
+
+The phase 3 simulation is a comprehensive test of the processor with all of the functionalities. 
+
+```sh
+make -f Makefile.phase3 phase3_lint
+make -f Makefile.phase3 phase3_sim
+```
+Generate and view the SoC waveform.
+
+```sh
+make -f Makefile.phase3 phase3_waves
+surfer build/phase3_sim/cpu_soc.vcd
+```
+### Rebuild the LED program
+
+The repository includes generated images, so this step is unnecessary unless
+`tests/asm/blink.S` changes:
+
+```sh
+bash scripts/build_blink.sh
+```
+
+The script assembles and links the program, then creates:
+
+- `blink.elf`: linked executable with symbols;
+- `blink.bin`: raw machine-code bytes;
+- `blink.dis`: human-readable disassembly;
+- `blink.hex`: words consumed by `$readmemh` for FPGA RAM initialization.
+
+### Build the ECP5 bitstream
+
+Activate the OSS CAD Suite environment via above commands or their given repository's commands and then run:
+
+```sh
+make -C fpga/ecp5 clean
+make -C fpga/ecp5
+```
+### Program the evaluation board
+
+Before programming:
+
+1. Connect the board's power cable and then the programming USB to computer
+2. The board should come with a jumper on JP2, make sure that is properly installed. Remove jumper on JP1
+
+Load the bitstream into volatile FPGA RAM.
+
+```sh
+make -C fpga/ecp5 program
+```
+
+This configuration is volatile, meaning it will disappear after power off. To write the program permanently on SPI flash:
+```sh
+make -C fpga/ecp5 flash
+```
+
+Use the flash target only after the volatile program has been successfully tested. LED0 should blink according to the GPIO programming. 
+
 ## References
 
 - [MIT 6.5900/6.823 Computer System Architecture lecture notes](https://csg.csail.mit.edu/6.5900F23/lecnotes.html) — L02–L03 for caches and memory hierarchy, L05 for pipeline timing and hazards, L06–L07 for complex pipelines, and L08 for branch prediction.
