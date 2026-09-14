@@ -1,0 +1,34 @@
+VERILATOR ?= verilator
+
+PHASE3_BUILD := build/phase3_sim
+
+.PHONY: phase3_lint phase3_sim phase3_waves phase3_fpga phase3_program phase3_clean
+
+phase3_lint:
+	$(VERILATOR) --lint-only --timing --sv --Wall -Wno-fatal \
+		--top-module cpu_soc_tb -f phase3.f tb/soc/cpu_soc_tb.sv
+
+phase3_sim:
+	mkdir -p $(PHASE3_BUILD)
+	$(VERILATOR) --binary --timing --sv --Wall -Wno-fatal \
+		--top-module cpu_soc_tb -f phase3.f tb/soc/cpu_soc_tb.sv \
+		--Mdir $(PHASE3_BUILD)
+	./$(PHASE3_BUILD)/Vcpu_soc_tb
+
+phase3_waves:
+	mkdir -p $(PHASE3_BUILD)
+	$(VERILATOR) --binary --timing --trace --trace-structs --sv --Wall -Wno-fatal \
+		--top-module cpu_soc_tb -f phase3.f tb/soc/cpu_soc_tb.sv \
+		--Mdir $(PHASE3_BUILD)
+	./$(PHASE3_BUILD)/Vcpu_soc_tb +trace
+
+phase3_fpga:
+	$(MAKE) -C fpga/ecp5
+
+phase3_program:
+	$(MAKE) -C fpga/ecp5 program
+
+phase3_clean:
+	rm -rf build/phase3_sim
+	$(MAKE) -C fpga/ecp5 clean
+

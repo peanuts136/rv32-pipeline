@@ -1,0 +1,18 @@
+# Generated build products
+build/
+obj_dir/
+*.vcd
+*.fst
+*.log
+
+# FPGA build products
+fpga/ecp5/build/
+*.json
+*.config
+*.bit
+
+# macOS
+.DS_Store
+
+# Editor files
+.vscode/
